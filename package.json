@@ -1,0 +1,22 @@
+{
+  "name": "discord-info-bot",
+  "version": "1.0.0",
+  "description": "Aesthetic mf Discord Bot",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "discord.js": "^14.14.1",
+    "dotenv": "^17.2.3",
+    "proxy-agent": "^6.3.1",
+    "socks-proxy-agent": "^8.0.5",
+    "translate-google-api": "^1.0.4",
+    "undici": "^5.28.4"
+  }
+}
