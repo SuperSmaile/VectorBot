@@ -1,4 +1,21 @@
-require('dotenv').config();
+// Load .env file only if it exists (not needed on Koyeb — env vars are injected by the platform)
+const dotenv = require('dotenv');
+const envResult = dotenv.config();
+if (envResult.error) {
+    console.log('ℹ️  No .env file found — using platform environment variables');
+}
+
+// Validate required environment variables
+const requiredEnvVars = ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID'];
+const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+    console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
+    console.error('   Set them in your Koyeb service settings under "Environment variables".');
+    process.exit(1);
+}
+if (!process.env.GEMINI_API_KEY) {
+    console.warn('⚠️  GEMINI_API_KEY not set — AI features will be disabled');
+}
 const { Client, GatewayIntentBits, Collection, REST, Routes, Partials } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -104,6 +121,16 @@ async function start() {
 
 process.on('unhandledRejection', (error) => {
     console.error('Unhandled rejection:', error.message);
+});
+
+// Minimal HTTP server for Koyeb health checks
+const http = require('http');
+const PORT = process.env.PORT || 8000;
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('OK');
+}).listen(PORT, () => {
+    console.log(`🩺 Health check server running on port ${PORT}`);
 });
 
 start();
