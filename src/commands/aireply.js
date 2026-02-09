@@ -77,7 +77,7 @@ module.exports = {
             
             const userMessage = lastUserMsg?.embeds[0]?.description || 'Привет';
             
-            const response = await aiManager.generateWithStyle(userMessage, style, fullContext);
+            const response = await aiManager.generateWithStyle(userMessage, style, fullContext, interaction.user.id);
             
             if (!response) {
                 return interaction.editReply(`${e.error} Не удалось сгенерировать ответ.`);

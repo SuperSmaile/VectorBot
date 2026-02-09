@@ -1,10 +1,20 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const config = require('../../config.json');
-const { SocksProxyAgent } = require("socks-proxy-agent");
 const fs = require('fs');
 const path = require('path');
 
-const proxyAgent = new SocksProxyAgent("socks5h://127.0.0.1:9050");
+// Proxy is optional — only used in local dev with Tor, not needed on Koyeb
+let proxyAgent = null;
+if (process.env.USE_PROXY === 'true') {
+    try {
+        const { SocksProxyAgent } = require("socks-proxy-agent");
+        proxyAgent = new SocksProxyAgent(process.env.PROXY_URL || "socks5h://127.0.0.1:9050");
+        console.log('🔌 Proxy agent enabled');
+    } catch (e) {
+        console.log('ℹ️  Proxy not available, connecting directly');
+    }
+}
+
 const settingsPath = path.join(__dirname, '../../data/ai-settings.json');
 
 let genAI = null;
@@ -148,6 +158,18 @@ function removeAutoReplyChannel(channelId) {
     return settings.autoReplyChannels;
 }
 
+// ============== CREATOR MODE ==============
+function isCreator(userId) {
+    return userId && config.ai.creatorId && userId === config.ai.creatorId;
+}
+
+function getCreatorInjection(userId) {
+    if (isCreator(userId)) {
+        return `\n\n${config.ai.creatorPrompt}`;
+    }
+    return '';
+}
+
 // ============== AI INITIALIZATION ==============
 function initAI() {
     if (!process.env.GEMINI_API_KEY) {
@@ -157,10 +179,9 @@ function initAI() {
     
     try {
         genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        model = genAI.getGenerativeModel(
-            { model: 'gemma-3-27b-it' }, 
-            { requestOptions: { agent: proxyAgent } }
-        );
+        const modelOptions = { model: 'gemma-3-27b-it' };
+        const requestOptions = proxyAgent ? { requestOptions: { agent: proxyAgent } } : {};
+        model = genAI.getGenerativeModel(modelOptions, requestOptions);
         console.log('✅ AI initialized');
         return true;
     } catch (error) {
@@ -170,13 +191,14 @@ function initAI() {
 }
 
 // ============== AI GENERATION ==============
-async function generateResponse(userMessage, customPrompt = null) {
+async function generateResponse(userMessage, customPrompt = null, userId = null) {
     if (!model) {
         if (!initAI()) return null;
     }
     
     try {
-        const systemPrompt = customPrompt || `${config.ai.systemPrompt} ${getStylePrompt()}`;
+        const creatorExtra = getCreatorInjection(userId);
+        const systemPrompt = (customPrompt || `${config.ai.systemPrompt} ${getStylePrompt()}`) + creatorExtra;
         const prompt = `${systemPrompt}\n\nПользователь: ${userMessage}\n\nОтвет:`;
         
         const result = await model.generateContent(prompt);
@@ -189,13 +211,14 @@ async function generateResponse(userMessage, customPrompt = null) {
     }
 }
 
-async function generateReply(context, userMessage, customPrompt = null) {
+async function generateReply(context, userMessage, customPrompt = null, userId = null) {
     if (!model) {
         if (!initAI()) return null;
     }
     
     try {
-        const systemPrompt = customPrompt || `${config.ai.systemPrompt} ${getStylePrompt()}`;
+        const creatorExtra = getCreatorInjection(userId);
+        const systemPrompt = (customPrompt || `${config.ai.systemPrompt} ${getStylePrompt()}`) + creatorExtra;
         const prompt = `${systemPrompt}\n\nКонтекст разговора:\n${context}\n\nПоследнее сообщение пользователя: ${userMessage}\n\nТвой ответ:`;
         
         const result = await model.generateContent(prompt);
@@ -208,14 +231,15 @@ async function generateReply(context, userMessage, customPrompt = null) {
     }
 }
 
-async function generateWithStyle(userMessage, style, context = '') {
+async function generateWithStyle(userMessage, style, context = '', userId = null) {
     if (!model) {
         if (!initAI()) return null;
     }
     
     try {
         const stylePrompt = getStylePrompt(style);
-        const systemPrompt = `${config.ai.systemPrompt} ${stylePrompt}`;
+        const creatorExtra = getCreatorInjection(userId);
+        const systemPrompt = `${config.ai.systemPrompt} ${stylePrompt}` + creatorExtra;
         
         let prompt;
         if (context) {
@@ -285,6 +309,7 @@ module.exports = {
     generateWithStyle,
     analyzeMessages,
     chat,
+    isCreator,
     getSettings,
     saveSettings,
     isAutoReplyEnabled,

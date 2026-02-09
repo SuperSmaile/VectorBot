@@ -67,7 +67,7 @@ module.exports = {
             }
         }
         
-        const response = await aiManager.generateResponse(userMessage, customPrompt);
+        const response = await aiManager.generateResponse(userMessage, customPrompt, interaction.user.id);
         
         if (!response) {
             return interaction.editReply(`${e.error} Не удалось сгенерировать ответ. Проверьте API ключ.`);

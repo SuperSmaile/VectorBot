@@ -46,7 +46,8 @@ module.exports = {
                         const response = await aiManager.generateWithStyle(
                             cleanContent, 
                             aiManager.getCurrentStyle(),
-                            context
+                            context,
+                            message.author.id
                         );
                         
                         if (response) {

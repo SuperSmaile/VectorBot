@@ -69,7 +69,8 @@ module.exports = {
                     const response = await aiManager.generateWithStyle(
                         targetMessage.content,
                         actualStyle,
-                        context
+                        context,
+                        interaction.user.id
                     );
                     
                     if (!response) {
@@ -115,7 +116,7 @@ module.exports = {
                     
                     const userMessage = lastUserEmbed?.embeds[0]?.description || 'Привет';
                     
-                    const response = await aiManager.generateWithStyle(userMessage, style, context);
+                    const response = await aiManager.generateWithStyle(userMessage, style, context, interaction.user.id);
                     
                     if (!response) {
                         return interaction.followUp({ content: `${e.error} Не удалось сгенерировать ответ.`, ephemeral: true });
@@ -178,7 +179,8 @@ module.exports = {
                     const response = await aiManager.generateWithStyle(
                         userMessage, 
                         aiManager.getCurrentStyle(),
-                        context
+                        context,
+                        interaction.user.id
                     );
                     
                     if (!response) {
